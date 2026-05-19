@@ -88,21 +88,13 @@
                   - cloudInitNoCloud:
                       userData: |
                         #cloud-config
-                        users:
-                          - name: cloud-user
-                            sudo: ['ALL=(ALL) NOPASSWD: ALL']
-                            groups: wheel
-                            shell: /bin/bash
-                            ssh_authorized_keys:
-                              - "{{ ssh_public_key }}"
-                            passwd: "{{ vm_password }}"
-                            lock_passwd: false
-                        chpasswd:
-                          list: |
-                            cloud-user:{{ vm_password }}
-                          expire: False
-                        ssh_authorized_keys:
-                          - "{{ ssh_public_key }}"
+                        user: cloud-user
+          password: "{{ vm_password }}"
+             chpasswd:
+  expire: false
+ssh_pwauth: true
+ssh_authorized_keys:
+  - "{{ ssh_public_key }}"
                     name: cloudinitdisk
 
     - name: Wait for system to become reachable over
