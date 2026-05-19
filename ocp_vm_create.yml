@@ -2,7 +2,7 @@
 - name: Create a VM in OpenShift Virtualization
   hosts: localhost
   gather_facts: false
-  
+
   tasks:
     - name: Create a RHEL VM in OpenShift
       redhat.openshift.k8s:
@@ -19,8 +19,10 @@
               vm.kubevirt.io/template.namespace: openshift
               vm.kubevirt.io/template.revision: '1'
               vm.kubevirt.io/template.version: v0.26.0
+
           spec:
             runStrategy: Manual
+
             dataVolumeTemplates:
               - apiVersion: cdi.kubevirt.io/v1beta1
                 kind: DataVolume
@@ -35,75 +37,92 @@
                     resources:
                       requests:
                         storage: 30Gi
+
             template:
               metadata:
                 labels:
                   kubevirt.io/domain: "{{ vm_name }}"
                   kubevirt.io/size: small
+
               spec:
                 architecture: amd64
+
                 domain:
                   cpu:
                     cores: 1
                     sockets: 1
                     threads: 1
+
                   devices:
                     disks:
                       - disk:
                           bus: virtio
                         name: rootdisk
+
                       - disk:
                           bus: virtio
                         name: cloudinitdisk
+
                     interfaces:
                       - macAddress: "02:f3:be:00:00:{{ '%02x' | format(10) }}"
                         masquerade: {}
                         model: virtio
                         name: default
+
                     networkInterfaceMultiqueue: true
                     rng: {}
+
                   features:
                     acpi: {}
+
                     smm:
                       enabled: true
+
                   firmware:
                     bootloader:
                       efi: {}
+
                   machine:
                     type: pc-q35-rhel9.2.0
+
                   memory:
                     guest: 2Gi
+
                 networks:
                   - name: default
                     pod: {}
+
                 terminationGracePeriodSeconds: 180
+
                 tolerations:
                   - effect: NoSchedule
                     key: sandbox-cnv
                     operator: Exists
+
                 volumes:
                   - dataVolume:
                       name: "{{ vm_name }}"
                     name: rootdisk
-                  - cloudInitNoCloud:
+
+                 - name: cloudinitdisk
+                   cloudInitNoCloud:
+                     userData: |
+                      #cloud-config
+                       user: cloud-user
+                      password: Redhat123
+                          chpasswd:
+                         expire: false
+                     ssh_pwauth: true
                       userData: |
                         #cloud-config
-                        users:
-                          - name: cloud-user
-                            sudo: ['ALL=(ALL) NOPASSWD: ALL']
-                            groups: wheel
-                            shell: /bin/bash
-                            ssh_authorized_keys:
-                              - "{{ ssh_public_key }}"
-                            passwd: "{{ vm_password }}"
-                            lock_passwd: false
-                        chpasswd:
-                          list: |
-                            cloud-user:{{ vm_password }}
-                          expire: False
-                        ssh_authorized_keys:
-                          - "{{ ssh_public_key }}"
-                    name: cloudinitdisk
+                         user:
+                           - default
+                           - name: cloud-user
+                             password: Redhat123
+                             chpasswd: { expire: False }
+                             sudo: ALL=(ALL) NOPASSWD:ALL
+                             shell: /bin/bash
+                   
 
     - name: Wait for system to become reachable over
       ansible.builtin.wait_for_connection:
